@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>The Interactive Time Master</title>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #080c1f;
+      --bg-panel: #0d1230;
+      --purple: #7c3aed;
+      --purple-light: #a78bfa;
+      --blue: #1d4ed8;
+      --blue-light: #60a5fa;
+      --orange: #ea580c;
+      --orange-light: #fb923c;
+      --yellow-neon: #fde047;
+      --red-neon: #f87171;
+      --green: #22c55e;
+      --white: #ffffff;
+      --text-muted: #94a3b8;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      min-height: 100%;
+      overflow-x: hidden;
+      overflow-y: auto;
+      background: var(--bg-dark);
+      font-family: 'Nunito', sans-serif;
+    }
+    #app {
+      width: 100%;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── HEADER ── */
+    #header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 12px 16px;
+      background: linear-gradient(135deg, #101c52 0%, #1a1060 100%);
+      border-bottom: 3px solid #3730a3;
+      box-shadow: 0 4px 24px rgba(99,102,241,0.35);
+      flex-shrink: 0;
+    }
+    #header h1 {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(16px, 4vw, 44px);
+      color: #fff;
+      letter-spacing: 1px;
+      text-shadow: 0 0 18px rgba(253,224,71,0.6);
+    }
+    #header h1 .accent { color: var(--yellow-neon); }
+    .mode-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+    .mode-btn {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(13px, 3.5vw, 22px);
+      padding: 8px 16px; border-radius: 50px;
+      border: 3px solid transparent; cursor: pointer;
+      transition: all 0.25s ease; white-space: nowrap;
+    }
+    .mode-btn.free-play { background: #1e3a8a; color: #93c5fd; border-color: #3b82f6; }
+    .mode-btn.free-play.active {
+      background: #3b82f6; color: #fff;
+      box-shadow: 0 0 22px #3b82f6aa;
+    }
+    .mode-btn.challenge { background: #7c2d12; color: #fdba74; border-color: #ea580c; }
+    .mode-btn.challenge.active {
+      background: #ea580c; color: #fff;
+      box-shadow: 0 0 22px #ea580caa;
+    }
+
+    /* ── MAIN ── */
+    #main {
+      flex: 1;
+      display: flex;
+      flex-direction: row;
+      padding: 12px 12px;
+      gap: 12px;
+    }
+
+    /* ── CLOCK PANEL ── */
+    #clock-panel {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      min-width: 0;
+    }
+    #analogClock { cursor: grab; touch-action: none; display: block; }
+    #analogClock:active { cursor: grabbing; }
+
+    /* ── DIGITAL PANEL ── */
+    #digital-panel {
+      width: 36vw;
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: flex-start;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .digital-clock-box {
+      background: #060a18;
+      border: 4px solid #2563eb;
+      border-radius: 20px;
+      padding: 12px 14px;
+      text-align: center;
+      box-shadow: 0 0 32px rgba(37,99,235,0.45), inset 0 0 24px rgba(37,99,235,0.08);
+    }
+    .digital-time {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(32px, 7vw, 108px);
+      color: #60a5fa;
+      text-shadow: 0 0 28px #60a5fa, 0 0 8px #2563eb;
+      letter-spacing: 4px; line-height: 1;
+    }
+    .digital-sublabel {
+      font-size: clamp(10px, 2vw, 17px);
+      color: #475569; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 2px;
+      margin-top: 4px;
+    }
+
+    .words-box {
+      background: #0c0d22;
+      border: 3px solid #4f46e5;
+      border-radius: 16px;
+      padding: 10px 14px; text-align: center;
+    }
+    .words-label {
+      font-size: clamp(10px, 2vw, 15px); color: #475569;
+      font-weight: 900; text-transform: uppercase; letter-spacing: 2px;
+    }
+    .words-text {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(16px, 3.5vw, 40px);
+      color: #a78bfa;
+      text-shadow: 0 0 14px #7c3aed88;
+      margin-top: 4px;
+      line-height: 1.2;
+    }
+
+    /* ── CHALLENGE BOX ── */
+    #challenge-box {
+      background: #140d04;
+      border: 4px solid #c2410c;
+      border-radius: 20px;
+      padding: 12px 14px; text-align: center;
+      display: none; flex-direction: column;
+      align-items: center; gap: 8px;
+    }
+    #challenge-box.active { display: flex; }
+    .ch-label {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(12px, 2.5vw, 20px);
+      color: #fb923c; text-transform: uppercase; letter-spacing: 2px;
+    }
+    .ch-time {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(18px, 4vw, 50px);
+      color: #fff;
+      text-shadow: 0 0 20px #ea580c;
+      line-height: 1.1;
+    }
+    .ch-btn-row { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; justify-content: center; }
+    .ch-btn {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(13px, 3vw, 24px);
+      padding: 8px 16px; border-radius: 50px;
+      border: none; cursor: pointer; transition: all 0.2s;
+    }
+    .ch-btn.check {
+      background: #ea580c; color: #fff;
+      box-shadow: 0 4px 16px rgba(234,88,12,0.5);
+    }
+    .ch-btn.check:hover { transform: scale(1.06); box-shadow: 0 6px 22px rgba(234,88,12,0.7); }
+    .ch-btn.next {
+      background: transparent; color: #fb923c;
+      border: 2px solid #fb923c;
+    }
+    .ch-btn.next:hover { background: #fb923c22; }
+    .ch-result {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(13px, 2.5vw, 22px);
+      min-height: 20px;
+      transition: all 0.3s;
+    }
+    .ch-result.correct { color: #4ade80; text-shadow: 0 0 12px #22c55e; }
+    .ch-result.wrong   { color: #f87171; text-shadow: 0 0 12px #ef4444; }
+
+    /* ── FOOTER ── */
+    #footer {
+      display: flex; align-items: center;
+      justify-content: center; gap: 8px;
+      padding: 12px 12px;
+      background: #09091a;
+      border-top: 3px solid #1e1e40;
+      flex-shrink: 0;
+      flex-wrap: wrap;
+    }
+    .tog-btn {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(11px, 2.5vw, 21px);
+      padding: 8px 14px; border-radius: 50px;
+      border: 3px solid transparent; cursor: pointer;
+      transition: all 0.25s ease; white-space: nowrap;
+    }
+    .tog-btn.pt  { background:#1e0a3b; color:#c4b5fd; border-color:#7c3aed; }
+    .tog-btn.pt.on  { background:#7c3aed; color:#fff; box-shadow:0 0 18px #7c3aed99; }
+    .tog-btn.qr  { background:#0c1a38; color:#93c5fd; border-color:#2563eb; }
+    .tog-btn.qr.on  { background:#2563eb; color:#fff; box-shadow:0 0 18px #2563eb99; }
+    .tog-btn.hf  { background:#052010; color:#86efac; border-color:#16a34a; }
+    .tog-btn.hf.on  { background:#16a34a; color:#fff; box-shadow:0 0 18px #16a34a99; }
+    .tog-btn.oc  { background:#1f0d04; color:#fdba74; border-color:#c2410c; }
+    .tog-btn.oc.on  { background:#c2410c; color:#fff; box-shadow:0 0 18px #c2410c99; }
+
+    /* ── STAR FEEDBACK ── */
+    #star-overlay {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      pointer-events: none; z-index: 200;
+      opacity: 0; transition: opacity 0.3s;
+    }
+    #star-overlay.show { opacity: 1; }
+    .star-emoji {
+      font-size: clamp(60px, 16vw, 160px);
+      animation: starSpin 0.5s cubic-bezier(.175,.885,.32,1.275) both;
+      filter: drop-shadow(0 0 30px #fde047);
+    }
+    .star-text {
+      font-family: 'Fredoka One', cursive;
+      font-size: clamp(28px, 7vw, 80px);
+      color: var(--yellow-neon);
+      text-shadow: 0 0 40px #fde047, 0 0 80px rgba(253,224,71,0.4);
+      animation: popIn 0.4s 0.2s cubic-bezier(.175,.885,.32,1.275) both;
+    }
+    @keyframes starSpin {
+      from { transform: scale(0) rotate(-180deg); }
+      to   { transform: scale(1) rotate(0deg); }
+    }
+    @keyframes popIn {
+      from { transform: scale(0); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+
+    /* ── MOBILE: stack vertically on narrow screens ── */
+    @media (max-width: 600px) {
+      #main {
+        flex-direction: column;
+        padding: 10px;
+        gap: 12px;
+      }
+      #clock-panel {
+        width: 100%;
+        min-height: 0;
+      }
+      #digital-panel {
+        width: 100%;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .digital-time {
+        font-size: clamp(40px, 12vw, 72px);
+        letter-spacing: 4px;
+      }
+      .words-text {
+        font-size: clamp(20px, 6vw, 36px);
+      }
+      .ch-time {
+        font-size: clamp(22px, 7vw, 40px);
+      }
+      .tog-btn {
+        font-size: 13px;
+        padding: 8px 12px;
+      }
+      #footer {
+        gap: 6px;
+        padding: 10px 8px;
+      }
+    }
+
+    /* stars background */
+    #stars {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    }
+    #app { position: relative; z-index: 1; }
+  </style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+
+<div id="app">
+  <!-- HEADER -->
+  <div id="header">
+    <h1>⏰ The Interactive <span class="accent">Time Master</span></h1>
+    <div class="mode-buttons">
+      <button class="mode-btn free-play active" id="btnFree" onclick="setMode('free')">🎮 Free Play</button>
+      <button class="mode-btn challenge"        id="btnChallenge" onclick="setMode('challenge')">🏆 Challenge Mode</button>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div id="main">
+    <!-- Analogue Clock -->
+    <div id="clock-panel">
+      <canvas id="analogClock"></canvas>
+    </div>
+
+    <!-- Digital Side -->
+    <div id="digital-panel">
+      <div class="digital-clock-box">
+        <div class="digital-time" id="digitalTime">3:00</div>
+        <div class="digital-sublabel">Digital Clock</div>
+      </div>
+
+      <div class="words-box">
+        <div class="words-label">🗣️ How to Say It</div>
+        <div class="words-text" id="timeWords">Three O'Clock</div>
+      </div>
+
+      <div id="challenge-box">
+        <div class="ch-label">🎯 Show me this time…</div>
+        <div class="ch-time" id="chTimeText">Quarter past 5</div>
+        <div class="ch-btn-row">
+          <button class="ch-btn check" onclick="checkAnswer()">✓ Check!</button>
+          <button class="ch-btn next"  onclick="newChallenge()">🔀 New Time</button>
+        </div>
+        <div class="ch-result" id="chResult"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div id="footer">
+    <button class="tog-btn pt" id="btnPT" onclick="toggleOv('pastTo')">🟣 Show PAST / TO Zones</button>
+    <button class="tog-btn qr" id="btnQR" onclick="toggleOv('quarters')">🔵 Show QUARTERS</button>
+    <button class="tog-btn hf" id="btnHF" onclick="toggleOv('half')">🟢 Show HALF</button>
+    <button class="tog-btn oc" id="btnOC" onclick="toggleOv('oclock')">🟠 Show O'CLOCK</button>
+  </div>
+</div>
+
+<!-- Star overlay -->
+<div id="star-overlay">
+  <div class="star-emoji">⭐</div>
+  <div class="star-text">Great Job! 🎉</div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════
+   STATE
+══════════════════════════════════════════ */
+let hours   = 3;
+let minutes = 0;
+let mode    = 'free';
+let isDragging = false;
+let draggingHand = 'minute'; // 'minute' | 'hour'
+let overlays = { pastTo: false, quarters: false, half: false, oclock: false };
+
+// Challenge target
+let targetH = 3, targetM = 0;
+const challenges = [
+  { label:'Three O\'Clock',        h:3,  m:0  },
+  { label:'Six O\'Clock',          h:6,  m:0  },
+  { label:'Nine O\'Clock',         h:9,  m:0  },
+  { label:'Twelve O\'Clock',       h:12, m:0  },
+  { label:'Quarter past 2',        h:2,  m:15 },
+  { label:'Quarter past 5',        h:5,  m:15 },
+  { label:'Quarter past 8',        h:8,  m:15 },
+  { label:'Quarter past 11',       h:11, m:15 },
+  { label:'Half past 1',           h:1,  m:30 },
+  { label:'Half past 4',           h:4,  m:30 },
+  { label:'Half past 7',           h:7,  m:30 },
+  { label:'Half past 10',          h:10, m:30 },
+  { label:'Quarter to 3',          h:2,  m:45 },
+  { label:'Quarter to 6',          h:5,  m:45 },
+  { label:'Quarter to 9',          h:8,  m:45 },
+  { label:'Quarter to 12',         h:11, m:45 },
+  { label:'Five past 4',           h:4,  m:5  },
+  { label:'Twenty past 7',         h:7,  m:20 },
+  { label:'Ten to 2',              h:1,  m:50 },
+  { label:'Five to 11',            h:10, m:55 },
+];
+
+/* ══════════════════════════════════════════
+   CANVAS SETUP
+══════════════════════════════════════════ */
+const canvas = document.getElementById('analogClock');
+const ctx    = canvas.getContext('2d');
+
+function resizeClock() {
+  const panel = document.getElementById('clock-panel');
+  const isMobile = window.innerWidth <= 600;
+  let sz;
+  if (isMobile) {
+    // On mobile (stacked), use full width minus padding, capped at screen height * 0.55
+    sz = Math.min(panel.clientWidth * 0.97, window.innerHeight * 0.55);
+  } else {
+    sz = Math.min(panel.clientWidth, panel.clientHeight) * 0.97;
+  }
+  sz = Math.max(sz, 200); // never shrink below 200px
+  canvas.width  = sz;
+  canvas.height = sz;
+  drawClock();
+}
+window.addEventListener('resize', resizeClock);
+
+/* ══════════════════════════════════════════
+   DRAW
+══════════════════════════════════════════ */
+function drawClock() {
+  const W = canvas.width, H = canvas.height;
+  const cx = W / 2, cy = H / 2;
+  const R  = Math.min(W, H) / 2 - 6;
+
+  ctx.clearRect(0, 0, W, H);
+  ctx.save();
+  ctx.translate(cx, cy);
+
+  /* — outer glow ring — */
+  const grd = ctx.createRadialGradient(0,0,R*0.85,0,0,R+18);
+  grd.addColorStop(0,'rgba(29,78,216,0)');
+  grd.addColorStop(1,'rgba(29,78,216,0.35)');
+  ctx.beginPath(); ctx.arc(0,0,R+18,0,Math.PI*2);
+  ctx.fillStyle = grd; ctx.fill();
+
+  /* — clock border ring — */
+  ctx.beginPath(); ctx.arc(0,0,R,0,Math.PI*2);
+  const borderGrd = ctx.createLinearGradient(-R,-R,R,R);
+  borderGrd.addColorStop(0,'#3b82f6');
+  borderGrd.addColorStop(0.5,'#7c3aed');
+  borderGrd.addColorStop(1,'#2563eb');
+  ctx.strokeStyle = borderGrd;
+  ctx.lineWidth = R*0.055; ctx.stroke();
+
+  /* — white face — */
+  ctx.beginPath(); ctx.arc(0,0,R*0.97,0,Math.PI*2);
+  const faceGrd = ctx.createRadialGradient(0,-R*0.15,0,0,0,R);
+  faceGrd.addColorStop(0,'#f8faff');
+  faceGrd.addColorStop(1,'#dde8fb');
+  ctx.fillStyle = faceGrd; ctx.fill();
+
+  /* ── OVERLAYS ── */
+  if (overlays.pastTo)   drawPastTo(R);
+  if (overlays.quarters) drawQuarters(R);
+  if (overlays.half)     drawHalf(R);
+  if (overlays.oclock)   drawOclock(R);
+
+  /* — minute tick marks — */
+  for (let i = 0; i < 60; i++) {
+    const ang = (i*6 - 90) * Math.PI / 180;
+    const isH = i % 5 === 0;
+    const s   = isH ? R*0.80 : R*0.88;
+    const e   = R*0.95;
+    ctx.save();
+    ctx.rotate(ang);
+    ctx.strokeStyle = isH ? '#1e40af' : '#94a3b8';
+    ctx.lineWidth   = isH ? R*0.025 : R*0.01;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(0,-e); ctx.lineTo(0,-s);
+    ctx.stroke(); ctx.restore();
+  }
+
+  /* — numbers — */
+  for (let i = 1; i <= 12; i++) {
+    const ang = (i*30 - 90) * Math.PI / 180;
+    const nx  = Math.cos(ang) * R * 0.71;
+    const ny  = Math.sin(ang) * R * 0.71;
+
+    let color = '#0f172a', size = R*0.13, weight = '700';
+    if (overlays.quarters && (i===3||i===9))  { color='#1d4ed8'; size=R*0.155; weight='900'; }
+    if (overlays.half     &&  i===6)           { color='#15803d'; size=R*0.155; weight='900'; }
+    if (overlays.oclock   &&  i===12)          { color='#c2410c'; size=R*0.155; weight='900'; }
+
+    ctx.font = `${weight} ${size}px Nunito`;
+    ctx.fillStyle = color;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(i, nx, ny);
+  }
+
+  /* — overlay labels on top of numbers — */
+  if (overlays.quarters) drawQuarterLabels(R);
+  if (overlays.half)     drawHalfLabel(R);
+  if (overlays.oclock)   drawOclockLabel(R);
+
+  /* — HOUR HAND (red neon) — */
+  const hAng = ((hours%12)*30 + minutes*0.5 - 90) * Math.PI / 180;
+  drawHand(ctx, hAng, R*0.50, R*0.038, '#ef4444', '#f87171', 18);
+
+  /* — MINUTE HAND (yellow neon) — */
+  const mAng = (minutes*6 - 90) * Math.PI / 180;
+  drawHand(ctx, mAng, R*0.74, R*0.025, '#ca8a04', '#fde047', 22);
+
+  /* — center boss — */
+  ctx.beginPath(); ctx.arc(0,0,R*0.055,0,Math.PI*2);
+  ctx.fillStyle = '#1e3a8a'; ctx.fill();
+  ctx.beginPath(); ctx.arc(0,0,R*0.032,0,Math.PI*2);
+  ctx.fillStyle = '#93c5fd'; ctx.fill();
+
+  ctx.restore();
+}
+
+/* ── draw a clock hand ── */
+function drawHand(ctx, angle, len, width, colorDark, colorBright, glow) {
+  ctx.save();
+  ctx.shadowColor = colorBright; ctx.shadowBlur = glow;
+  ctx.strokeStyle = colorBright;
+  ctx.lineWidth   = width; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(Math.cos(angle+Math.PI)*len*0.18, Math.sin(angle+Math.PI)*len*0.18);
+  ctx.lineTo(Math.cos(angle)*len,               Math.sin(angle)*len);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/* ════════════════════════════════════════
+   OVERLAYS
+════════════════════════════════════════ */
+function drawPastTo(R) {
+  /* PAST — right semicircle (12 → 6, clockwise, minutes 0-30) */
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(0,0);
+  ctx.arc(0,0,R*0.88,-Math.PI/2,Math.PI/2,false);
+  ctx.closePath();
+  ctx.fillStyle   = 'rgba(167,139,250,0.22)';
+  ctx.strokeStyle = 'rgba(139,92,246,0.45)';
+  ctx.lineWidth   = 2; ctx.fill(); ctx.stroke();
+
+  /* PAST label */
+  ctx.font      = `900 ${R*0.095}px Nunito`;
+  ctx.fillStyle = '#6d28d9';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('PAST', R*0.44, 0);
+
+  /* TO — left semicircle (6 → 12, clockwise, minutes 30-60) */
+  ctx.beginPath();
+  ctx.moveTo(0,0);
+  ctx.arc(0,0,R*0.88,Math.PI/2,3*Math.PI/2,false);
+  ctx.closePath();
+  ctx.fillStyle   = 'rgba(251,146,60,0.22)';
+  ctx.strokeStyle = 'rgba(234,88,12,0.45)';
+  ctx.fill(); ctx.stroke();
+
+  /* TO label */
+  ctx.font      = `900 ${R*0.095}px Nunito`;
+  ctx.fillStyle = '#c2410c';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('TO', -R*0.44, 0);
+
+  /* divider line */
+  ctx.strokeStyle = 'rgba(100,116,139,0.4)';
+  ctx.lineWidth   = R*0.008; ctx.setLineDash([R*0.04,R*0.03]);
+  ctx.beginPath(); ctx.moveTo(0,-R*0.88); ctx.lineTo(0,R*0.88);
+  ctx.stroke(); ctx.setLineDash([]);
+  ctx.restore();
+}
+
+function drawQuarters(R) {
+  /* highlight arcs around 3 and 9 */
+  [[3,'#2563eb'],[9,'#2563eb']].forEach(([num, col]) => {
+    const a = (num*30 - 90)*Math.PI/180;
+    const x = Math.cos(a)*R*0.71, y = Math.sin(a)*R*0.71;
+    ctx.save();
+    ctx.beginPath(); ctx.arc(x,y,R*0.115,0,Math.PI*2);
+    ctx.strokeStyle = col; ctx.lineWidth = R*0.025;
+    ctx.shadowColor = col; ctx.shadowBlur = 14;
+    ctx.stroke(); ctx.restore();
+  });
+}
+
+function drawQuarterLabels(R) {
+  /* "Quarter Past" near 3 */
+  const a3 = (3*30-90)*Math.PI/180;
+  const x3 = Math.cos(a3)*R*0.71, y3 = Math.sin(a3)*R*0.71;
+  ctx.save();
+  ctx.font      = `900 ${R*0.067}px Nunito`;
+  ctx.fillStyle = '#1d4ed8';
+  ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText('Quarter', x3+R*0.155, y3-R*0.04);
+  ctx.fillText('Past',    x3+R*0.155, y3+R*0.065);
+  ctx.restore();
+
+  /* "Quarter To" near 9 */
+  const a9 = (9*30-90)*Math.PI/180;
+  const x9 = Math.cos(a9)*R*0.71, y9 = Math.sin(a9)*R*0.71;
+  ctx.save();
+  ctx.font      = `900 ${R*0.067}px Nunito`;
+  ctx.fillStyle = '#1d4ed8';
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  ctx.fillText('Quarter', x9-R*0.155, y9-R*0.04);
+  ctx.fillText('To',      x9-R*0.155, y9+R*0.065);
+  ctx.restore();
+}
+
+function drawHalf(R) {
+  const a = (6*30-90)*Math.PI/180;
+  const x = Math.cos(a)*R*0.71, y = Math.sin(a)*R*0.71;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x,y,R*0.115,0,Math.PI*2);
+  ctx.strokeStyle = '#16a34a'; ctx.lineWidth = R*0.025;
+  ctx.shadowColor = '#22c55e'; ctx.shadowBlur = 14;
+  ctx.stroke(); ctx.restore();
+}
+
+function drawHalfLabel(R) {
+  const a = (6*30-90)*Math.PI/180;
+  const x = Math.cos(a)*R*0.71, y = Math.sin(a)*R*0.71;
+  ctx.save();
+  ctx.font      = `900 ${R*0.072}px Nunito`;
+  ctx.fillStyle = '#15803d';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText('Half Past', x, y+R*0.14);
+  ctx.restore();
+}
+
+function drawOclock(R) {
+  const a = (12*30-90)*Math.PI/180;
+  const x = Math.cos(a)*R*0.71, y = Math.sin(a)*R*0.71;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(x,y,R*0.115,0,Math.PI*2);
+  ctx.strokeStyle = '#c2410c'; ctx.lineWidth = R*0.025;
+  ctx.shadowColor = '#ea580c'; ctx.shadowBlur = 14;
+  ctx.stroke(); ctx.restore();
+}
+
+function drawOclockLabel(R) {
+  const a = (12*30-90)*Math.PI/180;
+  const x = Math.cos(a)*R*0.71, y = Math.sin(a)*R*0.71;
+  ctx.save();
+  ctx.font      = `900 ${R*0.072}px Nunito`;
+  ctx.fillStyle = '#c2410c';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  ctx.fillText("O'Clock", x, y-R*0.14);
+  ctx.restore();
+}
+
+/* ════════════════════════════════════════
+   TIME → DISPLAY
+════════════════════════════════════════ */
+function updateDisplay() {
+  const hh = ((hours - 1 + 12) % 12) + 1;
+  const mm = String(minutes).padStart(2,'0');
+  document.getElementById('digitalTime').textContent = `${hh}:${mm}`;
+  document.getElementById('timeWords').textContent   = toWords(hh, minutes);
+}
+
+const NUM_WORDS = [
+  '','One','Two','Three','Four','Five','Six',
+  'Seven','Eight','Nine','Ten','Eleven','Twelve'
+];
+
+function toWords(h, m) {
+  const next = h % 12 + 1;
+  const hw   = NUM_WORDS[h];
+  const nw   = NUM_WORDS[next] || 'One';
+  if (m === 0)  return `${hw} O'Clock`;
+  if (m === 15) return `Quarter past ${hw}`;
+  if (m === 30) return `Half past ${hw}`;
+  if (m === 45) return `Quarter to ${nw}`;
+  if (m < 30)   return `${NUM_WORDS[m] || m} past ${hw}`;
+  const left = 60 - m;
+  return `${NUM_WORDS[left] || left} to ${nw}`;
+}
+
+/* ════════════════════════════════════════
+   DRAG — MINUTE HAND
+════════════════════════════════════════ */
+function getCanvasPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  let cx, cy;
+  if (e.touches) {
+    cx = e.touches[0].clientX - rect.left;
+    cy = e.touches[0].clientY - rect.top;
+  } else {
+    cx = e.clientX - rect.left;
+    cy = e.clientY - rect.top;
+  }
+  /* scale to canvas coords */
+  const sx = canvas.width  / rect.width;
+  const sy = canvas.height / rect.height;
+  return { x: cx*sx, y: cy*sy };
+}
+
+function getHandTips() {
+  const R  = Math.min(canvas.width, canvas.height) / 2 - 6;
+  const cx = canvas.width / 2, cy = canvas.height / 2;
+  const hAng = ((hours % 12) * 30 + minutes * 0.5 - 90) * Math.PI / 180;
+  const mAng = (minutes * 6 - 90) * Math.PI / 180;
+  return {
+    hour:   { x: cx + Math.cos(hAng) * R * 0.50, y: cy + Math.sin(hAng) * R * 0.50 },
+    minute: { x: cx + Math.cos(mAng) * R * 0.74, y: cy + Math.sin(mAng) * R * 0.74 }
+  };
+}
+
+function angleToHours(dx, dy) {
+  let a = Math.atan2(dy, dx) * 180 / Math.PI + 90;
+  if (a < 0) a += 360;
+  const h = Math.round(a / 30) % 12;
+  return h === 0 ? 12 : h;
+}
+
+function angleToMinutes(dx, dy) {
+  /* angle from 12 o'clock, clockwise, in minutes */
+  let a = Math.atan2(dy, dx) * 180 / Math.PI + 90; // +90 rotates origin to 12
+  if (a < 0) a += 360;
+  return Math.round(a / 6) % 60;
+}
+
+function onDragStart(e) {
+  e.preventDefault();
+  const pos = getCanvasPos(e);
+  const tips = getHandTips();
+  const dHour = Math.hypot(pos.x - tips.hour.x,   pos.y - tips.hour.y);
+  const dMin  = Math.hypot(pos.x - tips.minute.x, pos.y - tips.minute.y);
+  const threshold = Math.min(canvas.width, canvas.height) * 0.18;
+  draggingHand = (dHour < dMin && dHour < threshold) ? 'hour' : 'minute';
+  isDragging = true;
+  onDragMove(e);
+}
+
+function onDragMove(e) {
+  if (!isDragging) return;
+  e.preventDefault();
+  const pos = getCanvasPos(e);
+  const cx  = canvas.width / 2, cy = canvas.height / 2;
+  const dx  = pos.x - cx, dy = pos.y - cy;
+
+  if (draggingHand === 'hour') {
+    const newHour = angleToHours(dx, dy);
+    if (newHour !== hours) {
+      hours = newHour;
+      drawClock();
+      updateDisplay();
+    }
+  } else {
+    const newMin = angleToMinutes(dx, dy);
+    if (newMin !== minutes) {
+      // Detect crossing the 12 o'clock mark (minute 0) and adjust hours
+      if (minutes >= 45 && newMin <= 15) {
+        hours = (hours % 12) + 1;       // forward past 12 → next hour
+      } else if (minutes <= 15 && newMin >= 45) {
+        hours = ((hours - 2 + 12) % 12) + 1; // backward past 12 → previous hour
+      }
+      minutes = newMin;
+      drawClock();
+      updateDisplay();
+    }
+  }
+}
+
+function onDragEnd(e) {
+  isDragging = false;
+}
+
+canvas.addEventListener('mousedown',  onDragStart, { passive: false });
+canvas.addEventListener('mousemove',  onDragMove,  { passive: false });
+canvas.addEventListener('mouseup',    onDragEnd);
+canvas.addEventListener('mouseleave', onDragEnd);
+
+canvas.addEventListener('touchstart', onDragStart, { passive: false });
+canvas.addEventListener('touchmove',  onDragMove,  { passive: false });
+canvas.addEventListener('touchend',   onDragEnd,   { passive: false });
+
+/* also allow clicking anywhere on clock to set minute hand */
+canvas.addEventListener('click', (e) => {
+  const pos = getCanvasPos(e);
+  const cx  = canvas.width/2, cy = canvas.height/2;
+  minutes   = angleToMinutes(pos.x-cx, pos.y-cy);
+  drawClock(); updateDisplay();
+});
+
+/* ════════════════════════════════════════
+   MODE
+════════════════════════════════════════ */
+function setMode(m) {
+  mode = m;
+  document.getElementById('btnFree').classList.toggle('active',      m==='free');
+  document.getElementById('btnChallenge').classList.toggle('active', m==='challenge');
+  const box = document.getElementById('challenge-box');
+  if (m === 'challenge') {
+    box.classList.add('active');
+    newChallenge();
+  } else {
+    box.classList.remove('active');
+    document.getElementById('chResult').textContent = '';
+    document.getElementById('chResult').className   = 'ch-result';
+  }
+}
+
+/* ════════════════════════════════════════
+   CHALLENGE
+════════════════════════════════════════ */
+let lastChIdx = -1;
+function newChallenge() {
+  let idx;
+  do { idx = Math.floor(Math.random()*challenges.length); } while (idx===lastChIdx);
+  lastChIdx = idx;
+  const ch  = challenges[idx];
+  targetH   = ch.h;
+  targetM   = ch.m;
+  document.getElementById('chTimeText').textContent = ch.label;
+  document.getElementById('chResult').textContent   = '';
+  document.getElementById('chResult').className     = 'ch-result';
+}
+
+function checkAnswer() {
+  /* normalise hours to 1-12 */
+  const playerH = ((hours-1+12)%12)+1;
+  const mOK  = Math.abs(minutes - targetM) <= 2;
+  const hOK  = playerH === targetH || playerH === (targetH%12+1 && targetM >= 58);
+  const ok   = mOK && (playerH === targetH);
+
+  const el = document.getElementById('chResult');
+  if (ok) {
+    el.textContent = '✅ Correct! Well done!';
+    el.className   = 'ch-result correct';
+    showStar();
+  } else {
+    el.textContent = '❌ Not quite — try again!';
+    el.className   = 'ch-result wrong';
+    /* brief shake of canvas */
+    canvas.style.transition = 'transform 0.05s';
+    let n = 0;
+    const shake = setInterval(() => {
+      canvas.style.transform = n%2===0 ? 'translateX(6px)' : 'translateX(-6px)';
+      n++; if (n>6) { clearInterval(shake); canvas.style.transform=''; }
+    }, 55);
+  }
+}
+
+/* ════════════════════════════════════════
+   OVERLAYS TOGGLE
+════════════════════════════════════════ */
+const ovMap = { pastTo:'btnPT', quarters:'btnQR', half:'btnHF', oclock:'btnOC' };
+function toggleOv(key) {
+  overlays[key] = !overlays[key];
+  document.getElementById(ovMap[key]).classList.toggle('on', overlays[key]);
+  drawClock();
+}
+
+/* ════════════════════════════════════════
+   STAR ANIMATION
+════════════════════════════════════════ */
+function showStar() {
+  const el = document.getElementById('star-overlay');
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+/* ════════════════════════════════════════
+   STARS BACKGROUND
+════════════════════════════════════════ */
+(function initStars() {
+  const sc = document.getElementById('stars');
+  const sx = sc.getContext('2d');
+  function resize() { sc.width=window.innerWidth; sc.height=window.innerHeight; drawStars(); }
+  function drawStars() {
+    sx.clearRect(0,0,sc.width,sc.height);
+    for (let i=0;i<120;i++) {
+      const x = Math.random()*sc.width;
+      const y = Math.random()*sc.height;
+      const r = Math.random()*1.4+0.3;
+      sx.beginPath(); sx.arc(x,y,r,0,Math.PI*2);
+      sx.fillStyle = `rgba(255,255,255,${Math.random()*0.5+0.1})`;
+      sx.fill();
+    }
+  }
+  window.addEventListener('resize', resize);
+  resize();
+})();
+
+/* ════════════════════════════════════════
+   INIT
+════════════════════════════════════════ */
+window.addEventListener('load', () => {
+  resizeClock();
+  updateDisplay();
+});
+</script>
+</body>
+</html>
